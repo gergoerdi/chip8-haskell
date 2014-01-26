@@ -4,12 +4,12 @@ import Control.Monad (forM_)
 
 main = do
     fb <- newFrameBuffer
-    forM_ [0..63] $ \x -> do
-        flipPixel fb (x, 0)
-        flipPixel fb (x, 31)
-    forM_ [0..31] $ \y -> do
-        flipPixel fb (0, y)
-        flipPixel fb (63, y)
+    forM_ [minBound..maxBound] $ \x -> do
+        flipPixel fb (x, minBound)
+        flipPixel fb (x, maxBound)
+    forM_ [minBound..maxBound] $ \y -> do
+        flipPixel fb (minBound, y)
+        flipPixel fb (maxBound, y)
 
     (_progName, _args) <- GLUT.getArgsAndInitialize
     _window <- GLUT.createWindow "Hello World"

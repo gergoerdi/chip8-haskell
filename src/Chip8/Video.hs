@@ -1,6 +1,5 @@
 module Chip8.Video
        ( FrameBuffer
-       , numRows, numCols
        , newFrameBuffer
        , drawFrameBuffer
        , Collision(..), flipPixel
@@ -11,29 +10,19 @@ import Data.Word
 import Control.Arrow ((***))
 import Control.Monad (forM_, when)
 import Graphics.UI.GLUT
+import Data.Sized.Unsigned
+import qualified Data.Sized.Ix as Ix
 
-type FrameBuffer = IOUArray (Word8, Word8) Bool
-
-numCols :: Word8
-numCols = 64
-
-numRows :: Word8
-numRows = 32
-
-maxX :: Word8
-maxX = numCols - 1
-
-maxY :: Word8
-maxY = numRows - 1
+type FrameBuffer = IOUArray (U6, U5) Bool
 
 newFrameBuffer :: IO FrameBuffer
-newFrameBuffer = newArray ((0, 0), (maxX, maxY)) False
+newFrameBuffer = newArray (minBound, maxBound) False
 
 data Collision = Collision
                | NoCollision
                deriving (Eq, Show)
 
-flipPixel :: FrameBuffer -> (Word8, Word8) -> IO Collision
+flipPixel :: FrameBuffer -> (U6, U5) -> IO Collision
 flipPixel fb pos = do
     old <- readArray fb pos
     let new = not old
@@ -42,12 +31,23 @@ flipPixel fb pos = do
 
 drawFrameBuffer :: FrameBuffer -> DisplayCallback
 drawFrameBuffer fb = do
-    scale (recip $ fromIntegral numCols) (recip $ fromIntegral numRows) (1 :: GLfloat)
-    preservingMatrix $ forM_ [0..maxX] $ \x -> forM_ [0..maxY] $ \y -> do
+    viewport minBound maxBound
+    preservingMatrix $ forM_ Ix.all $ \x -> forM_ Ix.all $ \y -> do
         isWhite <- readArray fb (x, y)
         when isWhite $ rect2 x y
   where
-    rect2 :: Word8 -> Word8 -> DisplayCallback
+    viewport :: (U6, U5) -> (U6, U5) -> DisplayCallback
+    viewport (minX, minY) (maxX, maxY) = do
+        scale (recip w) (recip h) 1
+        translate $ Vector3 (-w / 2) (-h / 2) 0
+      where
+        w :: GLfloat
+        w = fromIntegral maxX - fromIntegral minX
+
+        h :: GLfloat
+        h = fromIntegral maxY - fromIntegral minY
+
+    rect2 :: U6 -> U5 -> DisplayCallback
     rect2 x y = do
         renderPrimitive Quads $ do
             point2 x1 y1
@@ -55,8 +55,8 @@ drawFrameBuffer fb = do
             point2 x2 y2
             point2 x1 y2
       where
-        x1 = fromIntegral x - fromIntegral numCols / 2
-        y1 = fromIntegral y - fromIntegral numRows / 2
+        x1 = fromIntegral x
+        y1 = fromIntegral y
         x2 = x1 + 1
         y2 = y1 + 1
 
