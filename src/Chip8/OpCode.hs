@@ -15,7 +15,7 @@ data Fun = Id
          | ShiftRight
          | SubtractFlip
          | ShiftLeft
-         deriving Show
+         deriving (Show)
 
 data Op = ClearScreen
         | Ret
