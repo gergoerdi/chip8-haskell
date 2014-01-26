@@ -3,14 +3,15 @@ module Chip8.Memory where
 import Chip8.Types
 
 import Data.Array.IO
+import Control.Applicative
 
-type Memory = IOUArray Addr Word8
+newtype Memory = Memory{ getArray :: IOUArray Addr Word8 }
 
 newMemory :: IO Memory
-newMemory = newArray (minBound, maxBound) 0
+newMemory = Memory <$> newArray (minBound, maxBound) 0
 
 getByte :: Memory -> Addr -> IO Word8
-getByte = readArray
+getByte = readArray . getArray
 
 getCode :: Memory -> Addr -> IO (Word8, Word8)
 getCode mem addr = do

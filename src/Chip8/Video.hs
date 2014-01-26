@@ -10,31 +10,32 @@ import Chip8.Utils
 import Data.Array.IO
 import Data.Word
 import Control.Monad (forM_, when)
+import Control.Applicative
 import Graphics.UI.GLUT
 import Data.Sized.Unsigned
 import qualified Data.Sized.Ix as Ix
 
-type FrameBuffer = IOUArray (U6, U5) Bool
+newtype FrameBuffer = FrameBuffer{ getArray :: IOUArray (U6, U5) Bool }
 
 newFrameBuffer :: IO FrameBuffer
-newFrameBuffer = newArray (minBound, maxBound) False
+newFrameBuffer = FrameBuffer <$> newArray (minBound, maxBound) False
 
 data Collision = Collision
                | NoCollision
                deriving (Eq, Show)
 
 flipPixel :: FrameBuffer -> (U6, U5) -> IO Collision
-flipPixel fb pos = do
-    old <- readArray fb pos
+flipPixel (FrameBuffer arr) pos = do
+    old <- readArray arr pos
     let new = not old
-    writeArray fb pos new
+    writeArray arr pos new
     return $ if old then Collision else NoCollision
 
 drawFrameBuffer :: FrameBuffer -> DisplayCallback
-drawFrameBuffer fb = do
+drawFrameBuffer (FrameBuffer arr) = do
     viewport minBound maxBound
     preservingMatrix $ forM_ Ix.all $ \x -> forM_ Ix.all $ \y -> do
-        isWhite <- readArray fb (x, y)
+        isWhite <- readArray arr (x, y)
         when isWhite $ rect2 x y
   where
     viewport :: (U6, U5) -> (U6, U5) -> DisplayCallback
