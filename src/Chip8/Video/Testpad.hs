@@ -12,7 +12,7 @@ main = do
         flipPixel fb (maxBound, y)
 
     (_progName, _args) <- GLUT.getArgsAndInitialize
-    _window <- GLUT.createWindow "Hello World"
+    _window <- GLUT.createWindow "Video test"
     displayCallback $= display fb
     GLUT.mainLoop
 
