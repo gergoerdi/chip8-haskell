@@ -45,7 +45,7 @@ drawFrameBuffer (FrameBuffer arr) = do
   where
     viewport :: (U6, U5) -> (U6, U5) -> DisplayCallback
     viewport (minX, minY) (maxX, maxY) = do
-        scale (recip w) (recip h) 1
+        scale (recip w) (negate $ recip h) 1
         translate $ Vector3 (-w / 2) (-h / 2) 0
       where
         w :: GLfloat
