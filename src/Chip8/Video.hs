@@ -2,7 +2,7 @@ module Chip8.Video
        ( FrameBuffer
        , newFrameBuffer
        , drawFrameBuffer
-       , Collision(..), flipPixel
+       , Collision(..), flipPixel, clearFrameBuffer
        ) where
 
 import Chip8.Utils
@@ -30,6 +30,11 @@ flipPixel (FrameBuffer arr) pos = do
     let new = not old
     writeArray arr pos new
     return $ if old then Collision else NoCollision
+
+clearFrameBuffer :: FrameBuffer -> IO ()
+clearFrameBuffer (FrameBuffer arr) = do
+    forM_ Ix.all $ \x -> forM_ Ix.all $ \y -> do
+        writeArray arr (x, y) False
 
 drawFrameBuffer :: FrameBuffer -> DisplayCallback
 drawFrameBuffer (FrameBuffer arr) = do

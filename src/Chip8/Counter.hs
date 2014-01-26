@@ -21,10 +21,7 @@ setCounter (Counter mvar) x = do
 getCounter :: Counter -> IO Word8
 getCounter = readMVar . getVar
 
-decCounter :: Counter -> IO Bool
+decCounter :: Counter -> IO ()
 decCounter counter = do
     x <- getCounter counter
-    if x == 0 then return False
-      else do
-        setCounter counter (pred x)
-        return $ pred x == 0
+    unless (x == 0) $ setCounter counter (pred x)

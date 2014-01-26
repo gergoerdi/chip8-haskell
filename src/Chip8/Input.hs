@@ -15,10 +15,10 @@ import Data.Sized.Unsigned
 import qualified Data.Sized.Ix as Ix
 
 data InputState = InputState{ keyStates :: IOUArray Nibble Bool
-                            , keyCallback :: Nibble -> IO ()
+                            , keyCallback :: Maybe Nibble -> IO ()
                             }
 
-newInputState :: (Nibble -> IO ()) -> IO InputState
+newInputState :: (Maybe Nibble -> IO ()) -> IO InputState
 newInputState keyCallback = do
     keyStates <- newArray (minBound, maxBound) False
     return InputState{..}
@@ -32,7 +32,7 @@ handleInput InputState{..} (Char c) keyState mods _pos = do
         Nothing -> return ()
         Just key -> do
             writeArray keyStates key (keyState == Down)
-            when (keyState == Down) $ keyCallback key
+            keyCallback $ guard (keyState == Down) >> return key
 handleInput _ _ _ _ _ = return ()
 
 encodeKey :: Char -> Modifiers -> Maybe Nibble

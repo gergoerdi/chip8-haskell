@@ -27,7 +27,7 @@ data Op = ClearScreen
         | PutImm Reg Word8
         | AddImm Reg Word8
         | Move Reg Reg Fun
-        | Load Addr
+        | SetPtr Addr
         | JumpPlusR0 Addr
         | Randomize Reg Word8
         | DrawSprite Reg Reg Nibble
@@ -70,7 +70,7 @@ decode code@(hi, lo) = case codes of
     (0x7,   x,   _,   _) -> AddImm (R x) imm
     (0x8,   x,   y, fun) -> Move (R x) (R y) (decodeFun fun)
     (0x9,   x,   y, 0x0) -> SkipEqReg (R x) (R y) False
-    (0xa,   _,   _,   _) -> Load addr
+    (0xa,   _,   _,   _) -> SetPtr addr
     (0xb,   _,   _,   _) -> JumpPlusR0 addr
     (0xc,   x,   _,   _) -> Randomize (R x) imm
     (0xd,   x,   y,   n) -> DrawSprite (R x) (R y) n

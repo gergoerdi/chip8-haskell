@@ -1,4 +1,7 @@
-module Chip8.Registers (Registers, newRegisters, getRegister) where
+module Chip8.Registers
+       ( Registers, newRegisters
+       , getRegister, setRegister
+       ) where
 
 import Chip8.Types
 
