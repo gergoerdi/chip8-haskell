@@ -5,9 +5,10 @@ module Chip8.Video
        , Collision(..), flipPixel
        ) where
 
-import Data.Array.IO as A
+import Chip8.Utils
+
+import Data.Array.IO
 import Data.Word
-import Control.Arrow ((***))
 import Control.Monad (forM_, when)
 import Graphics.UI.GLUT
 import Data.Sized.Unsigned
@@ -62,6 +63,3 @@ drawFrameBuffer fb = do
 
     point2 :: GLfloat -> GLfloat -> DisplayCallback
     point2 x y = vertex $ Vertex2 x y
-
-both :: (a -> b) -> (a, a) -> (b, b)
-both f = f *** f
