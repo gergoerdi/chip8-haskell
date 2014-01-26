@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 module Chip8.Machine
-       ( Machine(frameBuffer, input), newMachine
+       ( Machine(memory, frameBuffer, input), newMachine
        , stepMachine
        ) where
 
@@ -17,6 +17,7 @@ import Chip8.Video
 import Control.Concurrent.MVar
 import Data.IORef
 import Data.Bits
+import Data.Char (isSpace)
 import Control.Monad
 import Control.Applicative
 import System.Random
@@ -28,6 +29,7 @@ data Machine = Machine{ memory :: Memory
                       , frameBuffer :: FrameBuffer
                       , inputBuffer :: MVar Nibble
                       , input :: InputState
+                      , waitInput :: IORef (Maybe Reg)
                       , timer :: Counter
                       , killTimer :: IO ()
                       , sound :: Counter
@@ -38,6 +40,8 @@ data Machine = Machine{ memory :: Memory
 newMachine :: IO Machine
 newMachine = do
     memory <- newMemory
+    loadCharSet memory
+
     pcReg <- newIORef 0x200
     ptrReg <- newIORef 0x000
     registers <- newRegisters
@@ -48,6 +52,7 @@ newMachine = do
             tryTakeMVar inputBuffer
             maybe (return ()) (putMVar inputBuffer) key
     input <- newInputState pushInput
+    waitInput <- newIORef Nothing
     timer <- newCounter
     killTimer <- startTimer freq (decCounter timer)
     sound <- newCounter
@@ -59,32 +64,46 @@ newMachine = do
     freq = 1 * 1000 * 1000 `div` 60 -- 60Hz
 
 stepMachine :: Machine -> IO ()
-stepMachine Machine{..} = do
+stepMachine machine@Machine{..} = do
     soundOn <- (== 0) <$> getCounter sound
     when soundOn $ do
         -- Play sound
         return ()
 
+    inputReg <- readIORef waitInput
+    case inputReg of
+        Nothing -> doStep machine
+        Just regX -> do
+            m'key <- tryTakeMVar inputBuffer
+            case m'key of
+                Nothing -> return ()
+                Just key -> do
+                    setRegister registers regX (fromIntegral key)
+                    writeIORef waitInput Nothing
+
+doStep :: Machine -> IO ()
+doStep Machine{..} = do
     pc <- readIORef pcReg
-    writeIORef pcReg (succ pc)
+    writeIORef pcReg (pc + 2)
     let jump = writeIORef pcReg
-        skip = modifyIORef pcReg succ
+        skip = modifyIORef pcReg (+2)
 
     let getReg = getRegister registers
         setReg = setRegister registers
 
     op <- getCode memory pc
+    putStrLn . unwords $ [show pc, show $ decode op]
     case decode op of
         ClearScreen -> do
             clearFrameBuffer frameBuffer
         Ret -> do
             popAddr stack >>= jump
-        Sys _ -> do
-            error "Unimplemented: SYS"
+        Sys n -> do
+            error $ unwords ["Unimplemented: SYS", show n]
         Jump addr -> do
             jump addr
         Call addr -> do
-            pushAddr stack addr
+            pushAddr stack (pc + 2)
             jump addr
         SkipEqImm regX imm skipWhen -> do
             x <- getReg regX
@@ -118,7 +137,7 @@ stepMachine Machine{..} = do
             x <- getReg regX
             y <- getReg regY
             ptr <- readIORef ptrReg
-            collisions <- fmap concat $ forM ([ptr..] `zip` [0..height]) $ \(addr, row) -> do
+            collisions <- fmap concat $ forM ([ptr..] `zip` [0..height-1]) $ \(addr, row) -> do
                 mask <- getByte memory addr
                 forM [0..7] $ \col -> do
                     let x' = fromIntegral x + fromIntegral col
@@ -130,6 +149,8 @@ stepMachine Machine{..} = do
         SkipKey regX skipIfPressed -> do
             isPressed <- getKeyDown input . fromIntegral =<< getReg regX
             when (isPressed == skipIfPressed) skip
+        WaitKey regX -> do
+            writeIORef waitInput (Just regX)
         GetTimer regX -> do
             setReg regX =<< getCounter timer
         SetTimer regX -> do
@@ -141,9 +162,14 @@ stepMachine Machine{..} = do
             modifyIORef ptrReg (+ fromIntegral x)
         LoadFont regX -> do
             x <- getReg regX
-            error "Unimplemented: LoadFont"
+            writeIORef ptrReg (toFont x)
         StoreBCD regX -> do
-            error "Unimplemented: StoreBCD"
+            x <- getReg regX
+            let (a1, a2, a3) = toBCD x
+            ptr <- readIORef ptrReg
+            setByte memory ptr a1
+            setByte memory (ptr+1) a2
+            setByte memory (ptr+2) a3
         StoreRegs regMax -> do
             ptr <- readIORef ptrReg
             forM_ (zip [ptr..] [minBound..regMax]) $ \(addr, reg) -> do
@@ -167,3 +193,139 @@ eval fun = case fun of
   where
     noCarry f x y = (f x y, Nothing)
     carry f p x y = let z = f x y in (z, Just $ if p x y z then 1 else 0)
+
+toBCD :: Word8 -> (Word8, Word8, Word8)
+toBCD x = (x `div` 100, (x `div` 10) `mod` 10, x `mod` 10)
+
+toFont :: Word8 -> Addr
+toFont x = fromIntegral (x .&. 0x0f) * 5
+
+
+loadCharSet :: Memory -> IO ()
+loadCharSet memory = do
+    forM_ ([0..] `zip` chars) $ \(i, lines) -> do
+        forM_ ([toFont i..] `zip` lines) $ \(addr, line) -> do
+            setByte memory addr (lineToByte line)
+  where
+    -- From http://laurencescotford.co.uk/?p=440
+    chars = [ -- 0
+              [ "****"
+              , "*  *"
+              , "*  *"
+              , "*  *"
+              , "****"
+              ]
+              -- 1
+            , [ " ** "
+              , "  * "
+              , "  * "
+              , "  * "
+              , " ***"
+              ]
+              -- 2
+            , [ "****"
+              , "   *"
+              , "****"
+              , "*   "
+              , "****"
+              ]
+              -- 3
+            , [ "****"
+              , "   *"
+              , "****"
+              , "   *"
+              , "****"
+              ]
+              -- 4
+            , [ " ***"
+              , "* * "
+              , "****"
+              , "  * "
+              , "  * "
+              ]
+              -- 5
+            , [ "****"
+              , "*   "
+              , "****"
+              , "   *"
+              , "****"
+              ]
+              -- 6
+            , [ "****"
+              , "*   "
+              , "****"
+              , "*  *"
+              , "****"
+              ]
+              -- 7
+            , [ "****"
+              , "   *"
+              , "   *"
+              , "   *"
+              , "   *"
+              ]
+              -- 8
+            , [ "****"
+              , "*  *"
+              , "****"
+              , "*  *"
+              , "****"
+              ]
+              -- 9
+            , [ "****"
+              , "*  *"
+              , "****"
+              , "   *"
+              , "****"
+              ]
+              -- a
+            , [ "****"
+              , "*  *"
+              , "****"
+              , "*  *"
+              , "*  *"
+              ]
+              -- b
+            , [ "****"
+              , " * *"
+              , " ***"
+              , " * *"
+              , "****"
+              ]
+              -- c
+            , [ "****"
+              , "*   "
+              , "*   "
+              , "*   "
+              , "****"
+              ]
+              -- d
+            , [ "****"
+              , " * *"
+              , " * *"
+              , " * *"
+              , "****"
+              ]
+              -- e
+            , [ "****"
+              , "*   "
+              , "****"
+              , "*   "
+              , "****"
+              ]
+              -- f
+            , [ "****"
+              , "*   "
+              , "****"
+              , "*   "
+              , "*   "
+              ]
+            ]
+
+lineToByte :: String -> Word8
+lineToByte s = foldr push 0 s `shiftL` 4
+  where
+    push :: Char -> Word8 -> Word8
+    push c x = if isSpace c then x' else x' + 1
+      where
+        x' = x * 2
