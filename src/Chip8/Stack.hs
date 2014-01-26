@@ -25,6 +25,6 @@ pushAddr Stack{..} addr = do
 popAddr :: Stack -> IO Addr
 popAddr Stack{..} = do
     ptr <- readIORef stackPtr
-    addr <- readArray stackContents ptr
+    addr <- readArray stackContents (pred ptr)
     writeIORef stackPtr (pred ptr)
     return addr
