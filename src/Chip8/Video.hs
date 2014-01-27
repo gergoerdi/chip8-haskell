@@ -38,13 +38,13 @@ flipPixel (FrameBuffer arr) pos = do
 
 clearFrameBuffer :: FrameBuffer -> IO ()
 clearFrameBuffer (FrameBuffer arr) = do
-    forM_ Ix.all $ \x -> forM_ Ix.all $ \y -> do
+    forM_ Ix.all $ \(x, y) -> do
         writeArray arr (x, y) False
 
 drawFrameBuffer :: FrameBuffer -> DisplayCallback
 drawFrameBuffer (FrameBuffer arr) = do
     viewport minBound maxBound
-    preservingMatrix $ forM_ Ix.all $ \x -> forM_ Ix.all $ \y -> do
+    preservingMatrix $ forM_ Ix.all $ \(x, y) -> do
         isWhite <- readArray arr (x, y)
         when isWhite $ rect2 x y
   where
