@@ -137,15 +137,15 @@ doStep Machine{..} = do
             x <- getReg regX
             y <- getReg regY
             ptr <- readIORef ptrReg
-            collisions <- fmap concat $ forM ([ptr..] `zip` [0..height-1]) $ \(addr, row) -> do
+            collisions <- forM ([ptr..] `zip` [0..height-1]) $ \(addr, row) -> do
                 mask <- getByte memory addr
-                forM [0..7] $ \col -> do
+                fmap combineCollisions $ forM [0..7] $ \col -> do
                     let x' = fromIntegral x + fromIntegral col
                         y' = fromIntegral y + fromIntegral row
                     if mask `testBit` col
                       then flipPixel frameBuffer (x', y')
                       else return NoCollision
-            setReg (R 0xf) (if any (== Collision) collisions then 1 else 0)
+            setReg (R 0xf) $ if combineCollisions collisions == Collision then 1 else 0
         SkipKey regX skipIfPressed -> do
             isPressed <- getKeyDown input . fromIntegral =<< getReg regX
             when (isPressed == skipIfPressed) skip

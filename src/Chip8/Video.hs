@@ -2,7 +2,8 @@ module Chip8.Video
        ( FrameBuffer
        , newFrameBuffer
        , drawFrameBuffer
-       , Collision(..), flipPixel, clearFrameBuffer
+       , Collision(..), combineCollisions
+       , flipPixel, clearFrameBuffer
        ) where
 
 import Chip8.Utils
@@ -23,6 +24,10 @@ newFrameBuffer = FrameBuffer <$> newArray (minBound, maxBound) False
 data Collision = Collision
                | NoCollision
                deriving (Eq, Show)
+
+combineCollisions :: [Collision] -> Collision
+combineCollisions cs = if not (null cs) && any (== Collision) cs
+                       then Collision else NoCollision
 
 flipPixel :: FrameBuffer -> (U6, U5) -> IO Collision
 flipPixel (FrameBuffer arr) pos = do
