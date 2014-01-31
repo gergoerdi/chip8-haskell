@@ -92,7 +92,6 @@ doStep Machine{..} = do
         setReg = setRegister registers
 
     op <- getCode memory pc
-    putStrLn . unwords $ [show pc, show $ decode op]
     case decode op of
         ClearScreen -> do
             clearFrameBuffer frameBuffer
@@ -148,7 +147,8 @@ doStep Machine{..} = do
                       else return NoCollision
             setReg (R 0xf) $ if combineCollisions collisions == Collision then 1 else 0
         SkipKey regX skipIfPressed -> do
-            isPressed <- getKeyDown input . fromIntegral =<< getReg regX
+            key <- fromIntegral <$> getReg regX
+            isPressed <- getKeyDown input key
             when (isPressed == skipIfPressed) skip
         WaitKey regX -> do
             writeIORef waitInput (Just regX)
