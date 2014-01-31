@@ -137,12 +137,13 @@ doStep Machine{..} = do
             x <- getReg regX
             y <- getReg regY
             ptr <- readIORef ptrReg
-            collisions <- forM ([ptr..] `zip` [0..height-1]) $ \(addr, row) -> do
+            let lim = if height == 0 then 15 else height-1
+            collisions <- forM ([ptr..] `zip` [0..lim]) $ \(addr, row) -> do
                 mask <- getByte memory addr
                 fmap combineCollisions $ forM [0..7] $ \col -> do
                     let x' = fromIntegral x + fromIntegral col
                         y' = fromIntegral y + fromIntegral row
-                    if mask `testBit` col
+                    if mask `testBit` (7 - col)
                       then flipPixel frameBuffer (x', y')
                       else return NoCollision
             setReg (R 0xf) $ if combineCollisions collisions == Collision then 1 else 0

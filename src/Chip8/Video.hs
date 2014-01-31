@@ -34,6 +34,7 @@ flipPixel (FrameBuffer arr) pos = do
     old <- readArray arr pos
     let new = not old
     writeArray arr pos new
+    postRedisplay Nothing
     return $ if old then Collision else NoCollision
 
 clearFrameBuffer :: FrameBuffer -> IO ()
@@ -45,19 +46,22 @@ drawFrameBuffer :: FrameBuffer -> DisplayCallback
 drawFrameBuffer (FrameBuffer arr) = do
     viewport minBound maxBound
     preservingMatrix $ forM_ Ix.all $ \(x, y) -> do
-        isWhite <- readArray arr (x, y)
-        when isWhite $ rect2 x y
+        isOn <- readArray arr (x, y)
+        when isOn $ rect2 x y
   where
     viewport :: (U6, U5) -> (U6, U5) -> DisplayCallback
     viewport (minX, minY) (maxX, maxY) = do
-        scale (recip w) (negate $ recip h) 1
+        scale (recip s) (negate $ recip s) 1
         translate $ Vector3 (-w / 2) (-h / 2) 0
       where
         w :: GLfloat
-        w = fromIntegral maxX - fromIntegral minX
+        w = fromIntegral maxX - fromIntegral minX + 2
 
         h :: GLfloat
-        h = fromIntegral maxY - fromIntegral minY
+        h = fromIntegral maxY - fromIntegral minY + 2
+
+        s :: GLfloat
+        s = min w h
 
     rect2 :: U6 -> U5 -> DisplayCallback
     rect2 x y = do
