@@ -323,9 +323,9 @@ loadCharSet memory = do
             ]
 
 lineToByte :: String -> Word8
-lineToByte s = foldr push 0 s `shiftL` 4
+lineToByte s = foldl push 0 s `shiftL` 4
   where
-    push :: Char -> Word8 -> Word8
-    push c x = if isSpace c then x' else x' + 1
+    push :: Word8 -> Char -> Word8
+    push x c = if isSpace c then x' else x' + 1
       where
         x' = x * 2
