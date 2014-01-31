@@ -181,7 +181,7 @@ doStep Machine{..} = do
 
 eval :: Fun -> Word8 -> Word8 -> (Word8, Maybe Word8)
 eval fun = case fun of
-    Id -> noCarry const
+    Id -> noCarry (\x y -> y)
     Or -> noCarry (.|.)
     And -> noCarry (.&.)
     XOr -> noCarry xor
