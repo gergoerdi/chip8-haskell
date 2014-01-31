@@ -186,10 +186,10 @@ eval fun = case fun of
     And -> noCarry (.&.)
     XOr -> noCarry xor
     Add -> carry (+) (\x y z -> z < x)
-    Subtract -> carry (-) (\x y z -> z > x)
-    SubtractFlip -> carry (flip (-)) (\x y z -> z > y)
-    ShiftRight -> carry (\x _ -> shiftR x 1) (\x _ _ -> testBit x 0)
-    ShiftLeft -> carry (\x _ -> shiftL x 1) (\x _ _ -> testBit x 7)
+    Subtract -> carry (-) (\x y z -> z <= x)
+    SubtractFlip -> carry (flip (-)) (\x y z -> z <= y)
+    ShiftRight -> carry (\x _ -> x `shiftR` 1) (\x _ _ -> x `testBit` 0)
+    ShiftLeft -> carry (\x _ -> x `shiftL` 1) (\x _ _ -> x `testBit` 7)
   where
     noCarry f x y = (f x y, Nothing)
     carry f p x y = let z = f x y in (z, Just $ if p x y z then 1 else 0)
