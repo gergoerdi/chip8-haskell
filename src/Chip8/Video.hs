@@ -8,7 +8,7 @@ module Chip8.Video
 
 import Chip8.Utils
 
-import Data.Array.IO
+import Data.Array.BitArray.IO
 import Data.Word
 import Control.Monad (forM_, when)
 import Control.Applicative
@@ -16,7 +16,7 @@ import Graphics.UI.GLUT
 import Data.Sized.Unsigned
 import qualified Data.Sized.Ix as Ix
 
-newtype FrameBuffer = FrameBuffer{ getArray :: IOUArray (U6, U5) Bool }
+newtype FrameBuffer = FrameBuffer{ getArray :: IOBitArray (U6, U5) }
 
 newFrameBuffer :: IO FrameBuffer
 newFrameBuffer = FrameBuffer <$> newArray (minBound, maxBound) False
