@@ -14,6 +14,7 @@ import Chip8.Counter
 import Chip8.Input
 import Chip8.Video
 
+import Control.Concurrent (threadDelay)
 import Control.Concurrent.MVar
 import Data.IORef
 import Data.Bits
@@ -72,7 +73,9 @@ stepMachine machine@Machine{..} = do
 
     inputReg <- readIORef waitInput
     case inputReg of
-        Nothing -> doStep machine
+        Nothing -> do
+            doStep machine
+            threadDelay 1000
         Just regX -> do
             m'key <- tryTakeMVar inputBuffer
             case m'key of
